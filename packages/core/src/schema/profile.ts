@@ -61,11 +61,16 @@ export const MeshProfileSchema = z.object({
       .optional(),
   }),
   state: z.object({
+    /** Legacy harness state file (read-only seed until mesh-agents.json exists). */
     agentsJson: z.string().default("tmux-main-agents.json"),
+    /** Mesh-owned slot state. Currently read-only; write path off until TODO 4.1. */
+    meshAgentsJson: z.string().default("mesh-agents.json"),
   }),
   daemon: z
     .object({
-      port: z.number().int().default(3099),
+      port: z.number().int().default(3100),
+      /** Start mesh inbox daemon with session/reload (engine — not manual inbox start). */
+      autoStart: z.boolean().default(true),
       pollMs: z.number().int().default(4000),
       idleSettleSec: z.number().int().default(5),
       managerPromptPrefix: z

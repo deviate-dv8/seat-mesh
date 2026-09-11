@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@seat-mesh/core": "0.1.0"
+    "@seat-mesh/core": "0.1.0",
+    "@seat-mesh/providers": "0.1.0"
   }
 }

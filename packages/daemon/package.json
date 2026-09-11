@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@seat-mesh/core": "0.1.0",
+    "@seat-mesh/providers": "0.1.0",
+    "@seat-mesh/tmux": "0.1.0",
     "bullmq": "^5.0.0",
     "ioredis": "^5.0.0"
   }

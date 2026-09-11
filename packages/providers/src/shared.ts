@@ -54,6 +54,15 @@ export function composerFromCapture(
     return { phase: "limit", limitKind: "cc-limit" };
   }
 
+  if (providerId === "cursor-agent") {
+    if (/Add a follow-up|ctrl\+c to stop/.test(tail)) {
+      return { phase: "busy", busyLabel: "follow-up" };
+    }
+    if (/Composer \d|· \d+\.\d+%|files edited/.test(tail)) {
+      return { phase: "busy", busyLabel: "composer" };
+    }
+  }
+
   if (/Working|Running|Thinking/.test(tail)) {
     const m = tail.match(/(Working|Running|Thinking[^\n]*)/);
     return { phase: "busy", busyLabel: m?.[1] ?? "busy" };

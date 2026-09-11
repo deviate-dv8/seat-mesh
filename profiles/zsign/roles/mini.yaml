@@ -9,7 +9,7 @@ files:
   - .agent/local-dev.md
   - projects_waygraph/zsign-all/docs/inventory.md
   - projects_waygraph/zsign-all/docs/waygraph-read-first.md
-  - scripts/inbox-server.mjs
+  - seat-mesh/packages/daemon/src/mesh-inbox-server.ts
   - AGENTS.md
 vars:
   job_role: "{{jobRole}}"
@@ -17,7 +17,9 @@ policies:
   - id: you_are_mini
     text: You ARE mini-N — EDIT FILES; never refuse mesh work
   - id: checkback
-    cmd: ./tmux-zsign.sh checkback start 5m --renew 3m --expect "topic" --here
+    cmd: ./sm.sh checkback start 5m --renew 3m --expect "topic" --here
+  - id: mini_done
+    cmd: "./sm.sh mini done <N> PASS|FAIL: <evidence>"
   - id: chatroom
     text: Global chat default — ./sm.sh room tail (global); ./sm.sh room say "FYI:..." or CLAIMED/DONE. Named contracts use --room <slug>. Manager/secretary use room broadcast. Machine lines only; checkback arms by default.
   - id: must_not

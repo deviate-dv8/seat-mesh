@@ -79,3 +79,40 @@ export async function inboxHealthy(inboxBase: string): Promise<boolean> {
     return false;
   }
 }
+
+export interface CheckbackEntry {
+  id: string;
+  kind: string;
+  status: "active" | "cancelled";
+  renewSec?: number;
+  expect?: string;
+  ownerPane?: string;
+  expiresAt?: string;
+  senderLabel?: string;
+  recipientLabel?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function listCheckbacks(
+  inboxBase: string,
+  opts: { all?: boolean } = {},
+): Promise<{ entries: CheckbackEntry[] }> {
+  const url = opts.all ? "patience?all=1" : "patience";
+  return inboxClient(inboxBase).get(url).json<{ entries: CheckbackEntry[] }>();
+}
+
+export interface CancelCheckbackResult {
+  ok: boolean;
+  cancelled: string;
+}
+
+export async function cancelCheckback(
+  inboxBase: string,
+  id: string,
+): Promise<CancelCheckbackResult> {
+  const encoded = encodeURIComponent(id);
+  return inboxClient(inboxBase)
+    .post(`patience/${encoded}/cancel`)
+    .json<CancelCheckbackResult>();
+}

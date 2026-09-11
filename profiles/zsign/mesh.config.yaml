@@ -15,12 +15,10 @@ layout:
     window: minis
     grid: 4x2
     max: 8
-    leads:
-      top: 1
-      bottom: 2
+    leads: {top: 1, bottom: 2}
 
 session:
-  name: dev
+  name: mesh
   workerCount: 6
   miniMax: 8
 
@@ -52,7 +50,8 @@ state:
   agentsJson: tmux-main-agents.json
 
 daemon:
-  port: 3099
+  port: 3100   # mesh-only TS daemon — harness inbox stays on 3099
+  autoStart: true   # engine starts inbox on session up / reload / attach (not manual)
   pollMs: 4000
   idleSettleSec: 5
   managerPromptPrefix: "[agent-manager-kiro-cursor-claude]"

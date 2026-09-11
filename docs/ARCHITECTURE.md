@@ -11,7 +11,7 @@ if/else chains in the orchestrator.
 | 0 | `nvim` | 1 pane | Editor |
 | 1 | `base` | 2 cols | **Manager** \| **Secretary** (full height) |
 | 2 | `workers` | **3x2** (6 panes) | Worker seats **1-6 only** |
-| 3 | `minis` | **4x2** (8 panes) | Parallel minis; leads left column per row |
+| 3 | `minis` | **profile grid** (e.g. `2x2` / `4x2`) | Parallel minis; `layout.minis.leads` places lead(s) in column 0 |
 
 Rationale: 3-6 agents is the effective parallel cap; slot 7-8 had ~zero activity.
 Six paired ports (`3010/3011` .. `3060/3061`) — slot `N` -> `30N0/30N1`.
@@ -110,13 +110,17 @@ no WiFi bounce, no smart-restart unless profile enables.
 `mesh.config.yaml` declares window names, slot count (6), port formula, provider
 registry ids, Redis URL, queue names. zsign profile is one consumer.
 
-## Migration from tmux-zsign.sh
+## Migration from tmux-zsign.sh (harness is not sm)
 
-1. Layout: 8 -> 6 workers; window rename `terminal_*` -> `workers` 3x2
-2. Extract providers from bash scrape/inject
-3. Inbox-server.mjs -> daemon package + BullMQ
-4. Producers: tmux-zsign/shim only enqueue
-5. Retire direct `send_agent_keys` paths
+seat-mesh does **not** wrap the harness. Migration = run **mesh** session beside
+**dev**, then move commands one at a time.
+
+1. **Done (0.1):** `./sm.sh` creates `mesh` layout (6 workers 3x2, base, minis)
+2. Layout: harness stays 8 workers on `dev` until cutover
+3. Extract providers from bash scrape/inject
+4. Inbox-server.mjs -> daemon package + BullMQ
+5. Producers enqueue only; daemon sole injector
+6. Retire harness paths per command — never `exec tmux-zsign.sh` from sm
 
 ## Out of scope for core
 

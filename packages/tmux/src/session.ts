@@ -1,0 +1,150 @@
+import { spawnSync } from "node:child_process";
+import type { LoadedProfile } from "@seat-mesh/core";
+import { applyMeshSessionBorders } from "./borders.js";
+import { labelMeshSession } from "./labels.js";
+import { ensureMeshInbox } from "./inbox-bridge.js";
+import { launchSession } from "./launch.js";
+import { ensureMeshSessionEnv } from "./session-env.js";
+import { inboxHealth, meshInboxPort, meshInboxStatusLine } from "./inbox-bridge.js";
+import { tmux, tmuxHasSession } from "./tmux-run.js";
+import { assertRelayoutSafe } from "./layout-guard.js";
+import {
+  applyMinisLeadsFromProfile,
+  layoutMinisFromProfile,
+  layoutWorkers3x2,
+  listWindowPaneIds,
+} from "./window-panes.js";
+
+function tmuxBatch(args: string[][]): void {
+  for (const a of args) {
+    const r = tmux(a);
+    if (!r.ok) {
+      throw new Error(`tmux ${a.join(" ")} failed: ${r.err || r.out}`);
+    }
+  }
+}
+
+/** Create seat-mesh session from profile layout (ARCHITECTURE.md). Does not touch `dev`. */
+export function sessionUp(loaded: LoadedProfile): void {
+  const session = loaded.profile.session.name;
+  const wd = loaded.workspace;
+  const layout = loaded.profile.layout;
+  if (!layout) throw new Error("profile missing layout: (nvim|base|workers|minis)");
+
+  if (tmuxHasSession(session)) {
+    throw new Error(`session '${session}' already exists — ./sm.sh session attach`);
+  }
+
+  const nvim = layout.nvim.window;
+  const base = layout.base.window;
+  const workers = layout.workers.window;
+  const minis = layout.minis.window;
+  const baseT = `${session}:${base}`;
+  const workersT = `${session}:${workers}`;
+  const minisT = `${session}:${minis}`;
+  const workerCount = loaded.profile.session.workerCount;
+  const miniMax = loaded.profile.session.miniMax;
+
+  tmuxBatch([
+    ["new-session", "-d", "-s", session, "-n", nvim, "-c", wd],
+    ["new-window", "-t", session, "-n", base, "-c", wd],
+    ["split-window", "-t", baseT, "-h", "-p", "50"],
+    ["new-window", "-t", session, "-n", workers, "-c", wd],
+    ["new-window", "-t", session, "-n", minis, "-c", wd],
+    ["select-window", "-t", baseT],
+  ]);
+
+  layoutWorkers3x2(session, workers, wd);
+  layoutMinisFromProfile(session, minis, wd, layout.minis);
+
+  ensureMeshSessionEnv(session);
+  labelMeshSession(loaded, session);
+  applyMinisLeadsFromProfile(session, minis, layout.minis);
+  applyMeshSessionBorders(session, [nvim, base, workers, minis]);
+
+  tmux(["send-keys", "-t", `${session}:${nvim}`, "nvim", "Enter"]);
+
+  if (process.env.MESH_SKIP_LAUNCH !== "1") {
+    launchSession(loaded);
+  }
+
+  ensureMeshInbox(loaded, { quiet: true });
+}
+
+export function sessionAttach(loaded: LoadedProfile): void {
+  const session = loaded.profile.session.name;
+  if (!tmuxHasSession(session)) {
+    sessionUp(loaded);
+  } else {
+    ensureMeshInbox(loaded, { quiet: true });
+  }
+
+  if (process.env.TMUX) {
+    const cur = tmux(["display-message", "-p", "#{session_name}"]).out;
+    if (cur === session) {
+      return;
+    }
+    tmux(["switch-client", "-t", session]);
+    return;
+  }
+
+  const r = spawnSync("tmux", ["attach-session", "-t", session], { stdio: "inherit" });
+  process.exit(r.status ?? 1);
+}
+
+export interface RelayoutOptions {
+  /** Skip minis lead swap (grid only). Default: apply profile `layout.minis.leads`. */
+  skipMinisLeads?: boolean;
+  /** Kill active panes when shrinking grid (default: refuse). */
+  force?: boolean;
+}
+
+/** Fix workers/minis geometry on a live session (kills extra panes, re-splits, relabels). */
+export function relayoutMeshSession(
+  loaded: LoadedProfile,
+  opts: RelayoutOptions = {},
+): void {
+  const session = loaded.profile.session.name;
+  const layout = loaded.profile.layout;
+  if (!layout) throw new Error("profile missing layout");
+  if (!tmuxHasSession(session)) {
+    throw new Error(`session '${session}' does not exist — ./sm.sh session up`);
+  }
+
+  assertRelayoutSafe(loaded, opts.force ?? false);
+
+  const wd = loaded.workspace;
+  layoutWorkers3x2(session, layout.workers.window, wd);
+  layoutMinisFromProfile(session, layout.minis.window, wd, layout.minis);
+  labelMeshSession(loaded, session);
+  if (!opts.skipMinisLeads) {
+    applyMinisLeadsFromProfile(session, layout.minis.window, layout.minis);
+  }
+  applyMeshSessionBorders(session, [
+    layout.nvim.window,
+    layout.base.window,
+    layout.workers.window,
+    layout.minis.window,
+  ]);
+}
+
+export function sessionStatus(loaded: LoadedProfile): void {
+  const session = loaded.profile.session.name;
+  const layout = loaded.profile.layout;
+  console.log(`profile=${loaded.profile.name}`);
+  console.log(`session=${session}`);
+  console.log(`exists=${tmuxHasSession(session)}`);
+  console.log(`workspace=${loaded.workspace}`);
+  console.log(meshInboxStatusLine(loaded, inboxHealth(meshInboxPort(loaded))));
+  if (!tmuxHasSession(session) || !layout) return;
+
+  console.log("--- panes ---");
+  for (const win of [layout.nvim.window, layout.base.window, layout.workers.window, layout.minis.window]) {
+    for (const paneId of listWindowPaneIds(session, win)) {
+      const role = tmux(["display-message", "-t", paneId, "-p", "#{@mesh_role}"]).out;
+      const slot = tmux(["display-message", "-t", paneId, "-p", "#{@mesh_slot}"]).out;
+      const ports = tmux(["display-message", "-t", paneId, "-p", "#{@mesh_ports}"]).out;
+      console.log(`${win}\t${paneId}\t${role}\t${slot}\t${ports}`);
+    }
+  }
+}

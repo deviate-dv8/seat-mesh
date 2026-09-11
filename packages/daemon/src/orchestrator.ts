@@ -1,25 +1,24 @@
 /**
- * Inbox orchestrator — only component allowed to inject into tmux panes.
- * Producers enqueue; BullMQ workers drain (see workers.ts).
+ * Inbox orchestrator — sole pane writer path (see mesh-orchestrator.ts).
  */
-
 import type { QueueDrainPolicy, InjectJob, ProviderRegistry } from "@seat-mesh/core";
+import {
+  orchestratorDrainTick,
+  type MeshOrchestratorCtx,
+  type DrainTickResult,
+} from "./mesh-orchestrator.js";
 
 export interface OrchestratorDeps {
   registry: ProviderRegistry;
   policy: QueueDrainPolicy;
-  /** Append-only queue writers (jsonl + Redis). */
-  enqueue(job: InjectJob): Promise<void>;
+  ctx: MeshOrchestratorCtx;
+  enqueue: (job: InjectJob) => Promise<void>;
 }
 
 export class InboxOrchestrator {
   constructor(private readonly deps: OrchestratorDeps) {}
 
-  /**
-   * Tick goal: best-effort empty pending inject jobs without stomping composers.
-   * Implementation: phase 3 — port from inbox-server.mjs poll loop + BullMQ.
-   */
-  async drainTick(): Promise<{ attempted: number; delivered: number; held: number }> {
-    return { attempted: 0, delivered: 0, held: 0 };
+  async drainTick(): Promise<DrainTickResult> {
+    return orchestratorDrainTick(this.deps.ctx);
   }
 }

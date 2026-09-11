@@ -11,6 +11,24 @@ export interface LoadedProfile {
   workspace: string;
 }
 
+/** seat-mesh package root (profiles/ lives here). */
+export function seatMeshPackageRoot(): string {
+  return path.resolve(import.meta.dirname, "../../..");
+}
+
+/** Default profile: zsign consumer checkout, else minimal demo. No flags required. */
+export function defaultProfilePath(): string {
+  const root = seatMeshPackageRoot();
+  const candidates = [
+    path.join(root, "profiles/zsign/mesh.config.yaml"),
+    path.join(root, "profiles/minimal/mesh.config.yaml"),
+  ];
+  for (const cfg of candidates) {
+    if (fs.existsSync(cfg)) return cfg;
+  }
+  throw new Error(`no default profile under ${root}/profiles/`);
+}
+
 export function findProfilePath(explicit?: string): string {
   if (explicit) {
     const p = path.resolve(explicit);
@@ -25,15 +43,7 @@ export function findProfilePath(explicit?: string): string {
     return p;
   }
 
-  const bundled = path.resolve(
-    import.meta.dirname,
-    "../../../profiles/minimal/mesh.config.yaml",
-  );
-  if (fs.existsSync(bundled)) return bundled;
-
-  throw new Error(
-    "no profile: pass --profile <path|dir>",
-  );
+  return defaultProfilePath();
 }
 
 export function loadProfile(explicit?: string): LoadedProfile {
@@ -50,7 +60,10 @@ export function profilePaths(loaded: LoadedProfile) {
   const { profile, profileDir, workspace } = loaded;
   return {
     seatsRoot: resolveFromWorkspace(workspace, profile.seats.root),
+    /** Legacy harness state file path (read-only seed). */
     agentsJson: resolveFromWorkspace(workspace, profile.state.agentsJson),
+    /** Mesh-owned slot state file path. */
+    meshAgentsJson: resolveFromWorkspace(workspace, profile.state.meshAgentsJson),
     rolesDir: resolveFromProfile(profileDir, profile.roles.dir),
     managerDir: resolveFromWorkspace(workspace, path.join(profile.seats.root, "manager")),
   };

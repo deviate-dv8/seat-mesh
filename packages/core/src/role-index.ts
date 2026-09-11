@@ -17,6 +17,8 @@ export interface RolePolicy {
 
 export interface RoleIndex {
   kind: string;
+  /** Printed first on ./sm.sh whoami (patterns.md / ONE-PATH). */
+  banner?: string[];
   read_first?: RoleIndexEntry[];
   policies?: RolePolicy[];
   files?: string[];
@@ -24,14 +26,38 @@ export interface RoleIndex {
   vars?: Record<string, string>;
 }
 
+function mergeRoleIndex(base: Partial<RoleIndex>, role: RoleIndex): RoleIndex {
+  const readFirst = [...(base.read_first ?? []), ...(role.read_first ?? [])];
+  const seen = new Set<string>();
+  const dedupedReadFirst = readFirst.filter((item) => {
+    if (seen.has(item.path)) return false;
+    seen.add(item.path);
+    return true;
+  });
+  return {
+    ...role,
+    banner: [...(base.banner ?? []), ...(role.banner ?? [])],
+    read_first: dedupedReadFirst,
+    policies: [...(base.policies ?? []), ...(role.policies ?? [])],
+    files: [...new Set([...(base.files ?? []), ...(role.files ?? [])])],
+    inject: [...(base.inject ?? []), ...(role.inject ?? [])],
+    vars: { ...(base.vars ?? {}), ...(role.vars ?? {}) },
+  };
+}
+
 export function loadRoleIndex(rolesDir: string, kind: string): RoleIndex {
   const file = path.join(rolesDir, `${kind}.yaml`);
   if (!fs.existsSync(file)) {
     throw new Error(`role index missing: ${file}`);
   }
+  let common: Partial<RoleIndex> = {};
+  const commonFile = path.join(rolesDir, "common.yaml");
+  if (fs.existsSync(commonFile)) {
+    common = YAML.parse(fs.readFileSync(commonFile, "utf8")) as Partial<RoleIndex>;
+  }
   const data = YAML.parse(fs.readFileSync(file, "utf8")) as RoleIndex;
   if (!data.kind) data.kind = kind;
-  return data;
+  return mergeRoleIndex(common, data);
 }
 
 function substituteVars(text: string, vars: Record<string, string>): string {
@@ -41,8 +67,15 @@ function substituteVars(text: string, vars: Record<string, string>): string {
 export function renderRoleIndex(
   index: RoleIndex,
   vars: Record<string, string> = {},
+  opts: { skipBanner?: boolean } = {},
 ): string {
   const lines: string[] = [];
+
+  if (!opts.skipBanner) {
+    for (const line of index.banner ?? []) {
+      lines.push(substituteVars(line, vars));
+    }
+  }
 
   for (const item of index.read_first ?? []) {
     const p = substituteVars(item.path, vars);

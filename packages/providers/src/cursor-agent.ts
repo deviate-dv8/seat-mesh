@@ -36,8 +36,8 @@ export const cursorAgentProvider: AgentProvider = {
     return {
       prefix: "",
       useBracketedPaste: true,
-      enterDelayMs: 400,
-      flushEscFirst: true,
+      enterDelayMs: 450,
+      flushEscFirst: false,
     };
   },
 

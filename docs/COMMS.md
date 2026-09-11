@@ -1,25 +1,163 @@
-# Agent comms (target)
+# Agent comms path
+
+**Command picker:** [ONE-PATH.md](ONE-PATH.md) — use that table first; this file is hop detail only.
 
 Same rule as ARCHITECTURE.md: **producers enqueue, daemon injects.** Legacy
 `tmux-zsign.sh` keeps working in parallel until cutover (`docs/PARALLEL.md`).
 
-## Today (legacy — split)
+## Comms path: `room say` -> checkback -> daemon inject
 
-| CLI | Path | Queued? |
-|-----|------|---------|
-| `to-master` | POST `:3099/to-master` -> `INBOX.jsonl` -> poll inject | yes |
-| `to-slot` | `send_agent_keys` direct to peer pane | **no** |
-| `to-mini` / `mini ask` / `mini peer` | direct paste | **no** |
-| `prompt` / `remind` / `continue` | manager direct paste | **no** |
-| `secretary` digest | bulk line to master | **no** |
-| `checkback` | `CHECKBACK.jsonl` + daemon poll inject | yes |
-| `schedule` | `SCHEDULE.jsonl` + daemon | yes |
-| limit recovery (OC/CC) | inbox-server side effects + paste | mixed |
+This is the primary comms flow today. Three hops, each documented below.
 
-Secretary **transformer**: ACK-class `to-master` held/absorbed; substance queued for
-bulk digest to master. Workers still expect prefixes (`[agent-worker-slot-N]`, etc.).
+### Hop 1: `room say` (implemented)
 
-## Target (seat-mesh)
+`room say` appends a message to the room ledger and optionally arms a checkback
+on the sender pane so they never chat-block waiting for a peer reply.
+
+```
+seat-mesh room say "DONE: picker fix" [-r global] [--kind claim] [--no-checkback]
+```
+
+**What runs:**
+
+1. `sayInRoom()` in `packages/core/src/chatroom/room.ts` appends the message to
+   `tasks/chat-rooms/<slug>/ROOM.jsonl` (durable ledger).
+2. Unless `--no-checkback`, it calls `armCheckback()` which POSTs to the mesh
+   daemon (`POST /patience` on `:3100`).
+3. The checkback payload includes: `expect` (e.g.
+   `chat-room:global peer update (claim)`), `ownerPane`, `expiresAt` (5m default),
+   `renewSec` (3m default), `kind`, sender info.
+
+**Real code:**
+
+| File | Lines | Role |
+|------|-------|------|
+| `packages/core/src/chatroom/room.ts` | 267 | `sayInRoom()` - ledger append + arm checkback |
+| `packages/core/src/chatroom/inbox-client.ts` | 81 | `armCheckback()` - HTTP client to daemon |
+| `packages/cli/src/room-cli.ts` | 226 | CLI: `room list\|create\|say\|broadcast\|tail` |
+| `packages/core/src/chatroom/types.ts` | - | Zod schemas for `RoomMessage`, `RoomKind` |
+| `packages/core/src/chatroom/global.ts` | - | `canBroadcastToGlobal()`, `resolveRoomSlug()` |
+| `packages/core/src/chatroom/agent-id.ts` | - | `resolveAgentId()` |
+| `packages/core/src/chatroom/duration.ts` | - | `parseDurationToSeconds()`, `expiresAtUtcFromDuration()` |
+
+**Config** (`profiles/zsign/mesh.config.yaml`):
+
+```yaml
+daemon:
+  port: 3100
+  autoStart: true
+  pollMs: 4000
+chatRooms:
+  root: tasks/chat-rooms
+  globalSlug: global
+  checkback:
+    duration: 5m
+    renew: 3m
+```
+
+### Hop 2: checkback (implemented, partial)
+
+The mesh inbox daemon stores checkback rows in `CHECKBACK.jsonl` and polls them.
+When a checkback expires, the daemon fires the message to the owner pane.
+
+**What runs:**
+
+`fireDueCheckbacks()` in `packages/daemon/src/mesh-inbox-server.ts` runs every
+4s (`pollMs`). For each active checkback past expiry:
+
+1. Formats message: `[mesh-inbox] Check: <expect>` (or mesh-watch variant).
+2. Calls `pastePane()` - raw tmux `send-keys` to the owner pane:
+   - `C-u` (clear line)
+   - `send-keys -l "<msg>"` (literal text)
+   - `Enter`
+3. If `renewSec > 0`, renews expiry; otherwise marks `cancelled`.
+
+**Implemented (2026-09-11):** Daemon uses `deliverToPane()` in
+`packages/daemon/src/inject-delivery.ts` — `registry.detect` ->
+`provider.injectPlan()` -> `injectToPane()`. Holds when composer is
+`typing`/`busy`/`limit` (delivers on `empty`/`afk` only).
+
+**Real code:**
+
+| File | Lines | Role |
+|------|-------|------|
+| `packages/daemon/src/mesh-inbox-server.ts` | 324 | Full daemon: HTTP routes + poll loop |
+| `packages/tmux/src/inbox-bridge.ts` | 202 | Daemon lifecycle: `start`/`stop`/`restart`/`status` |
+
+**HTTP routes:**
+
+| Route | Purpose |
+|-------|---------|
+| `GET /health` | Engine status, `checkbackActive` count |
+| `GET /patience` | List active checkbacks (`?all=1` for all) |
+| `POST /patience` | Arm a checkback (called by `armCheckback()`) |
+| `POST /patience/:id/cancel` | Cancel a checkback |
+
+**State files:** `tasks/seat-mesh/daemon/CHECKBACK.jsonl`, `mesh-inbox.json`,
+`mesh-inbox.log`
+
+### Hop 3: daemon inject plan (stubbed)
+
+The target is: daemon -> `InboxOrchestrator.drainTick()` -> BullMQ workers ->
+`registry.detect(target) -> provider.injectPlan() -> injectToPane()`.
+
+**What actually exists:**
+
+The inject infrastructure is built at the type and provider level, but the
+orchestration wiring is a no-op stub.
+
+**Implemented (types + providers):**
+
+| File | Role |
+|------|------|
+| `packages/core/src/queue/types.ts` | `QueueChannel`, `InjectJob`, `LimitQueueJob`, `QueueDrainPolicy` |
+| `packages/core/src/comms/envelope.ts` | `CommsEnvelopeSchema` (zod; `channel: inbox\|peer\|coord\|inject`) |
+| `packages/core/src/providers/types.ts` | `InjectPlan`, `AgentProvider`, `ProviderRegistry` interfaces |
+| `packages/providers/src/opencode.ts` | `injectPlan()` for opencode (`enterDelayMs: 150`, `flushEscFirst: true`) |
+| `packages/providers/src/claude.ts` | `injectPlan()` for claude (`enterDelayMs: 200`) |
+| `packages/providers/src/kiro.ts` | `injectPlan()` for kiro (`useBracketedPaste: true`) |
+| `packages/providers/src/cursor-agent.ts` | `injectPlan()` for cursor-agent (`enterDelayMs: 400`) |
+| `packages/providers/src/empty.ts` | Neutral fallback plan |
+| `packages/tmux/src/inject.ts` | `injectToPane()` - the tmux primitive (load-buffer, send-keys, enter delay) |
+| `packages/tmux/src/prompt.ts` | `injectPlan()` wired for `prompt`/`mini spawn` commands only |
+
+**Daemon orchestrator (real):**
+
+| File | Status |
+|------|--------|
+| `packages/daemon/src/jsonl-store.ts` | INBOX / PEER / CHECKBACK jsonl CRUD |
+| `packages/daemon/src/mesh-orchestrator.ts` | Sole drain tick: inbox, peer, checkback, border paint |
+| `packages/daemon/src/border-paint.ts` | `@mesh_status`, `@mesh_patience`, manager `INBOX · N` |
+| `packages/daemon/src/bullmq-runtime.ts` | `mesh-inject` worker when Redis ping OK; else poll fallback |
+| `packages/daemon/src/orchestrator.ts` | Thin `InboxOrchestrator` wrapper |
+| `packages/daemon/src/workers.ts` | Queue name constants (`mesh-inject`, …) |
+
+**Not built:**
+
+- `CommsEnvelope` router (table-driven `CommsRouter`)
+- `seat-mesh send` CLI
+- Daemon `mesh:inbox` / `mesh:peer` workers
+- `tmux-zsign.sh` shim dual-write for `to-master`
+
+## Current state summary
+
+| Piece | Status |
+|-------|--------|
+| Room ledger append (`sayInRoom`) | **Real** |
+| Checkback HTTP client (`POST /patience`) | **Real** |
+| Room CLI (`say/broadcast/tail/list/create`) | **Real** |
+| Mesh inbox daemon HTTP + poll/BullMQ drain | **Real** (`deliverToPane` + provider registry) |
+| Daemon lifecycle bridge | **Real** |
+| `injectToPane` tmux primitive | **Real** (prompt, mini spawn, daemon `deliverToPane`) |
+| Provider `injectPlan()` (5 providers) | **Real** (static plans per CLI) |
+| Queue/envelope/provider type definitions | **Real** |
+| `orchestratorDrainTick()` | **Real** - inbox/peer/checkback + border paint |
+| BullMQ `mesh-inject` worker | **Real** when Redis reachable; poll loop when not |
+| `CommsEnvelope` router | **Not built** |
+| `seat-mesh send` CLI | **Not built** |
+| Daemon inbox/peer workers | **Not built** |
+
+## Target design (for reference)
 
 One envelope, one writer:
 
@@ -30,9 +168,9 @@ interface CommsEnvelope {
   from: { kind: "worker"|"mini"|"secretary"|"manager"|"daemon"|"schedule"; slot?: number; mini?: number };
   to: { paneId?: string; slot?: number; mini?: number; role?: "manager"|"secretary" };
   body: string;
-  prefix?: "manager"|"worker"|"mini"|"peer"|"none";  // resolved by router from from/to
-  priority: number;           // BLOCKED/PROVED > routine ACK
-  expectReply?: boolean;    // arms checkback on sender
+  prefix?: "manager"|"worker"|"mini"|"peer"|"none";
+  priority: number;
+  expectReply?: boolean;
   meta?: { kind?: "ack"|"substance"|"prove"|"blocked"; scheduleId?: string };
 }
 ```
@@ -44,7 +182,6 @@ seat-mesh send to-master "DONE: ..."
 seat-mesh send to-slot 3 "need FE port confirm"
 seat-mesh send to-mini 2 "re: picker bug"
 seat-mesh send peer-mini 4 "split done"
-# shim: ./tmux-zsign.sh to-master ... -> same enqueue (dual-write during migration)
 ```
 
 Daemon workers (BullMQ):
@@ -58,14 +195,7 @@ Daemon workers (BullMQ):
 
 Inject step: `registry.detect(target)` -> `provider.injectPlan()` -> single tmux path.
 
-## Routing (no if/else in orchestrator)
-
-```text
-CommsRouter (table-driven)
-  match envelope -> DeliveryRule { queue, formatPrefix, holdIfTyping, secretaryFirst? }
-```
-
-Examples:
+Routing:
 
 | from -> to | queue | prefix formatter |
 |------------|-------|------------------|
@@ -77,45 +207,7 @@ Examples:
 | manager -> worker | coord | `[agent-manager-...]` + slot stamp |
 | daemon -> any | inject | checkback / resume / limit |
 
-Prefix strings live in **profile** (`mesh.config.yaml` `comms.prefixes`), not hardcoded zsign.
-
-## Secretary transformer (unchanged behavior, new pipe)
-
-```text
-worker to-master -> mesh:inbox -> SecretaryWorker
-  |-- ACK regex match -> secretary pane file (no master inject)
-  '-- substance -> batch buffer -> mesh:coord digest -> master
-```
-
-## ChatRoom (parallel contracts)
-
-Shared append-only ledger for contract members — not master inbox. See
-`docs/CHATROOM.md`. `room say` / future `send --room` append to
-`tasks/chat-rooms/<slug>/ROOM.jsonl`; agents `room tail` to deconflict without
-manager ACK loops.
-
-## ChatFile (per-slot prompt log)
-
-Queryable history of **human prompt + agent response** per seat (not peer comms).
-See `docs/CHATFILE.md`. Storage: `tasks/chat-files/<slot>/CHAT.jsonl`. Every
-`AgentProvider` implements `sessionId`, `modelId`, `scrapePromptTurn`. CLI:
-`chat tail|query|append|record`.
-
-## Checkback + comms
-
-**Default on all comms** (room say, peer send when wired): arm checkback on the
-sender so agents never chat-block in human POV waiting for a peer reply. Name:
-**checkback** (`patience` = legacy bash alias).
-
-Any `send` with `expectReply: true` atomically enqueues checkback row (same as today).
-`room say` always arms checkback unless `--no-checkback`.
-Reply on peer channel auto-matches `expect` (inbox objective match for ipify, etc.).
-Unrelated intercept -> agent acks via `checkback ack` (not auto).
-
-## Status / borders
-
-Not comms — daemon **paint** tick reads FOCUS Mark + `provider.composerState()` ->
-`@mesh_status` (legacy `@zsign_status` alias during migration).
+Prefix strings live in **profile** (`mesh.config.yaml` `comms.prefixes`).
 
 ## Migration (no delete)
 
@@ -128,7 +220,11 @@ Not comms — daemon **paint** tick reads FOCUS Mark + `provider.composerState()
 
 - [x] queue type stubs (`packages/core/src/queue/types.ts`)
 - [x] provider inject plans (per CLI)
+- [x] room say + checkback arm + daemon poll/fire
+- [x] mesh inbox daemon HTTP server on `:3100`
 - [ ] `CommsEnvelope` + router
 - [ ] `seat-mesh send` CLI
 - [ ] daemon inbox/peer workers
 - [ ] tmux-zsign shim dual-write for `to-master` only
+- [x] daemon inject via `registry.detect -> provider.injectPlan` (`inject-delivery.ts`)
+- [x] `to-master` INBOX drain + `to-slot`/`to-mini` PEER enqueue (`PEER.jsonl`)

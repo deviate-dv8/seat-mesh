@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
-import { loadProfile, portsForSlot } from "./index.js";
+import { defaultProfilePath, loadProfile, portsForSlot } from "./index.js";
 
 describe("loadProfile", () => {
+  it("loads default profile without --profile", () => {
+    const loaded = loadProfile();
+    expect(["zsign", "minimal"]).toContain(loaded.profile.name);
+    expect(loaded.workspace).toBeTruthy();
+  });
+
+  it("default profile prefers zsign when present", () => {
+    const cfg = defaultProfilePath();
+    expect(cfg).toContain("profiles");
+    expect(cfg.endsWith("mesh.config.yaml")).toBe(true);
+  });
+
   it("loads bundled minimal profile", () => {
     const minimalDir = path.resolve(
       import.meta.dirname,
