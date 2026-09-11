@@ -10,7 +10,15 @@ import {
 } from "@seat-mesh/core";
 import { snapshotConnectivity, formatStatus } from "@seat-mesh/connectivity";
 import { createBuiltinRegistry } from "@seat-mesh/providers";
-import { printWhoami, runWhoami, capturePaneSnapshot, listSessionPanes } from "@seat-mesh/tmux";
+import {
+  printWhoami,
+  runWhoami,
+  capturePaneSnapshot,
+  listSessionPanes,
+  startSession,
+  attachSession,
+  runHarness,
+} from "@seat-mesh/tmux";
 import { buildChatCommands } from "./chat-cli.js";
 import { buildContractCommands, buildRoomCommands } from "./room-cli.js";
 
@@ -31,26 +39,22 @@ function parseArgs(argv: string[]) {
 }
 
 function usage(): void {
-  console.log(`seat-mesh — typed agent workbench (profile-driven)
+  console.log(`seat-mesh — zsign agent workbench (./sm.sh)
 
 Usage:
-  seat-mesh [--profile <dir|yaml>] whoami [target]
-  seat-mesh [--profile <path>] index show [--role worker|master|mini|secretary] [--json]
-  seat-mesh [--profile <path>] index validate [--role <kind>]
-  seat-mesh [--profile <path>] proxy status|check
-  seat-mesh [--profile <path>] providers list|scan [session]
-  seat-mesh [--profile <path>] room create|say|tail|list ...
-  seat-mesh [--profile <path>] contract create <slug> ...
-  seat-mesh [--profile <path>] chat tail|query|append|record ...
-  seat-mesh stack up|down|reload|...   (passthrough to profile stack.command, default ./dc.sh)
-  seat-mesh dc ...                     (alias for stack)
-  seat-mesh profile show
+  sm                                      start or attach tmux session (replaces ./tmux-zsign.sh)
+  sm start | attach                       same
+  sm <harness-cmd> ...                    prompt, triage, mini, switch, … (legacy bridge)
+  sm whoami [target]
+  sm index show|validate [--role …]
+  sm proxy status|check
+  sm providers list|scan [session]
+  sm room|contract|chat …
+  sm stack up|down|reload|…               passthrough to ./dc.sh
+  sm save                                 scrape panes -> tmux-main-agents.json (bash shim)
 
-Bare ./sm.sh                           this help. Tmux session: ./tmux-zsign.sh (not migrated yet).
-  sm stack up|down|reload|...          passthrough to profile stack.command (./dc.sh)
-  sm save                              scrape panes -> tmux-main-agents.json (bash; was auto)
-
-Profile: zsign uses ./sm.sh (hardcoded profiles/zsign). Override: --profile <dir|yaml>
+Migrated commands run in seat-mesh; everything else delegates to tmux-zsign.sh until ported.
+Profile: zsign hardcoded in ./sm.sh. Override: --profile <dir|yaml>
 `);
 }
 
@@ -58,9 +62,19 @@ async function main(): Promise<void> {
   const { profile: profileArg, rest } = parseArgs(process.argv.slice(2));
   const [cmd, sub, ...tail] = rest;
 
-  if (!cmd || cmd === "-h" || cmd === "--help" || cmd === "help") {
+  if (cmd === "-h" || cmd === "--help" || cmd === "help") {
     usage();
-    process.exit(cmd ? 0 : 0);
+    return;
+  }
+
+  if (!cmd || cmd === "start") {
+    const loaded = loadProfile(profileArg);
+    process.exit(startSession(loaded));
+  }
+
+  if (cmd === "attach") {
+    const loaded = loadProfile(profileArg);
+    process.exit(attachSession(loaded.profile.session.name));
   }
 
   if (cmd === "profile" && sub === "show") {
@@ -202,9 +216,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.error(`unknown command: ${cmd}`);
-  usage();
-  process.exit(2);
+  const loaded = loadProfile(profileArg);
+  const harnessArgs = [cmd, ...(sub ? [sub] : []), ...tail];
+  process.exit(runHarness(loaded.workspace, harnessArgs));
 }
 
 main().catch((e) => {
