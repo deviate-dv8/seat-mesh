@@ -42,7 +42,8 @@ profiles/minimal       demo profile shipped with repo
 From the zsign workspace root:
 
 ```bash
-./sm.sh                                  # stack up (auto-build seat-mesh if needed)
+./sm.sh help                             # seat-mesh commands (auto-build on first use)
+./sm.sh stack up                         # passthrough to ./dc.sh up
 ./sm.sh save                             # scrape panes -> tmux-main-agents.json
 ./sm.sh room tail
 ./sm.sh whoami

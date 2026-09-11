@@ -101,11 +101,6 @@ seat_mesh_exec() {
 
   seat_mesh_ensure_built || return 1
 
-  # Default: bring local stack up (./dc.sh up via sm stack).
-  if [[ $# -eq 0 ]] || { [[ $# -eq 1 ]] && [[ "${1:-}" == "up" ]]; }; then
-    set -- stack up
-  fi
-
   exec node "$cli" --profile "$profile" "$@"
 }
 

@@ -46,7 +46,8 @@ Usage:
   seat-mesh dc ...                     (alias for stack)
   seat-mesh profile show
 
-Bare sm / sm up (bash shim): auto-build if needed, then stack up (./dc.sh up).
+Bare ./sm.sh                           print this help (no dc.sh).
+  sm stack up|down|reload|...          passthrough to profile stack.command (./dc.sh)
   sm save                              scrape panes -> tmux-main-agents.json (bash; was auto)
 
 Profile: zsign uses ./sm.sh (hardcoded profiles/zsign). Override: --profile <dir|yaml>
