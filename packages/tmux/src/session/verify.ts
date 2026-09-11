@@ -1,5 +1,5 @@
 import type { LoadedProfile } from "@seat-mesh/core";
-import { tmuxHasSession } from "./tmux-run.js";
+import { tmuxHasSession } from "../lib/tmux-run.js";
 import { listWindowPaneIds } from "./window-panes.js";
 
 export interface VerifyIssue {

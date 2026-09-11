@@ -1,6 +1,6 @@
 import type { LoadedProfile } from "@seat-mesh/core";
-import { resolvePaneTarget } from "./resolve-pane.js";
-import { tmux } from "./tmux-run.js";
+import { resolvePaneTarget } from "../lib/resolve-pane.js";
+import { tmux } from "../lib/tmux-run.js";
 
 export function setPaneTitle(loaded: LoadedProfile, target: string, title: string): void {
   const resolved = resolvePaneTarget(target, loaded.profile.session.name);

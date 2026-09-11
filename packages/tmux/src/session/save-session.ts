@@ -12,17 +12,17 @@ import {
   portsForSlot,
 } from "@seat-mesh/core";
 import type { ProviderRegistry } from "@seat-mesh/core";
-import { buildAgentLaunchCmd } from "./agent-builder.js";
-import { loadMeshAgents } from "./agents-state.js";
-import { loadMinisState } from "./minis.js";
+import { buildAgentLaunchCmd } from "../agents/agent-builder.js";
+import { loadMeshAgents } from "../agents/agents-state.js";
+import { loadMinisState } from "../roles/minis.js";
 import {
   listMeshMinis,
   listMeshWorkers,
   meshManagerPane,
   meshSecretaryPane,
-} from "./pane-meta.js";
-import { capturePaneSnapshot } from "./snapshot.js";
-import { tmuxHasSession } from "./tmux-run.js";
+} from "../lib/pane-meta.js";
+import { capturePaneSnapshot } from "../lib/snapshot.js";
+import { tmuxHasSession } from "../lib/tmux-run.js";
 import { listWindowPaneIds } from "./window-panes.js";
 
 function cliTypeFromProvider(providerId: string | undefined): CliType {

@@ -4,7 +4,7 @@ import {
   parseGridSpec,
   type MeshLayout,
 } from "@seat-mesh/core";
-import { tmux } from "./tmux-run.js";
+import { tmux } from "../lib/tmux-run.js";
 
 /** Pane ids in a single window, sorted by pane_index (stable slot order). */
 export function listWindowPaneIds(session: string, window: string): string[] {

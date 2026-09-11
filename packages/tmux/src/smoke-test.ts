@@ -2,12 +2,12 @@ import { spawnSync } from "node:child_process";
 import type { LoadedProfile } from "@seat-mesh/core";
 import { createBuiltinRegistry } from "@seat-mesh/providers";
 import { snapshotConnectivity } from "@seat-mesh/connectivity";
-import { inboxHealth, meshInboxPort } from "./inbox-bridge.js";
-import { resolvePaneTarget } from "./resolve-pane.js";
-import { capturePaneSnapshot, listSessionPanes } from "./snapshot.js";
-import { verifyMeshSession } from "./verify.js";
-import { tmuxHasSession } from "./tmux-run.js";
-import { listWindowPaneIds } from "./window-panes.js";
+import { inboxHealth, meshInboxPort } from "./comms/inbox-bridge.js";
+import { resolvePaneTarget } from "./lib/resolve-pane.js";
+import { capturePaneSnapshot, listSessionPanes } from "./lib/snapshot.js";
+import { verifyMeshSession } from "./session/verify.js";
+import { tmuxHasSession } from "./lib/tmux-run.js";
+import { listWindowPaneIds } from "./session/window-panes.js";
 
 export interface SmokeResult {
   name: string;

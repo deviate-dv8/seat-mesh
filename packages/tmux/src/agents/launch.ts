@@ -6,9 +6,9 @@ import {
   resolveLaunchCmd,
   workerStateForSlot,
 } from "./agents-state.js";
-import { ensureMeshSessionEnv } from "./session-env.js";
-import { tmux } from "./tmux-run.js";
-import { listWindowPaneIds } from "./window-panes.js";
+import { ensureMeshSessionEnv } from "../session/session-env.js";
+import { tmux } from "../lib/tmux-run.js";
+import { listWindowPaneIds } from "../session/window-panes.js";
 
 export interface LaunchResult {
   paneId: string;

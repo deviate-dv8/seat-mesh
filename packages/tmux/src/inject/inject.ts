@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import type { InjectPlan } from "@seat-mesh/core";
-import { tmux } from "./tmux-run.js";
+import { tmux } from "../lib/tmux-run.js";
 
 function sleepMs(ms: number): void {
   if (ms <= 0) return;

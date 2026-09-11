@@ -1,7 +1,7 @@
 import { portsForSlot, type LoadedProfile } from "@seat-mesh/core";
-import { resolvePaneTarget } from "./resolve-pane.js";
-import { runWhoami } from "./whoami.js";
-import { enqueuePeer } from "./inbox-bridge.js";
+import { resolvePaneTarget } from "../lib/resolve-pane.js";
+import { runWhoami } from "../agents/whoami.js";
+import { enqueuePeer } from "../comms/inbox-bridge.js";
 
 export interface RemindResult {
   target: string;

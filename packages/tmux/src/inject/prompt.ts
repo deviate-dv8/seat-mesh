@@ -1,8 +1,8 @@
 import type { LoadedProfile, ProviderRegistry } from "@seat-mesh/core";
-import { capturePaneSnapshot } from "./snapshot.js";
-import { resolvePaneTarget } from "./resolve-pane.js";
+import { capturePaneSnapshot } from "../lib/snapshot.js";
+import { resolvePaneTarget } from "../lib/resolve-pane.js";
 import { injectToPane } from "./inject.js";
-import { enqueuePeer } from "./inbox-bridge.js";
+import { enqueuePeer } from "../comms/inbox-bridge.js";
 
 export interface PromptOptions {
   /** Prefix with manager coordination tag. */

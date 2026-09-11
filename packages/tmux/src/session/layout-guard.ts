@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseGridSpec, type LoadedProfile } from "@seat-mesh/core";
-import { loadMinisState } from "./minis.js";
-import type { MeshPaneMeta } from "./pane-meta.js";
-import { listMeshMinis, listMeshWorkers, PANE_META_FMT } from "./pane-meta.js";
-import { capturePaneSnapshot } from "./snapshot.js";
-import { tmux } from "./tmux-run.js";
+import { loadMinisState } from "../roles/minis.js";
+import type { MeshPaneMeta } from "../lib/pane-meta.js";
+import { listMeshMinis, listMeshWorkers, PANE_META_FMT } from "../lib/pane-meta.js";
+import { capturePaneSnapshot } from "../lib/snapshot.js";
+import { tmux } from "../lib/tmux-run.js";
 import { listWindowPaneIds } from "./window-panes.js";
 
 const CLI_CMD_RE =

@@ -2,13 +2,13 @@ import { spawnSync } from "node:child_process";
 import type { LoadedProfile, ProviderRegistry } from "@seat-mesh/core";
 import { portsForSlot } from "@seat-mesh/core";
 import { buildLaunchCmd } from "./agents-state.js";
-import { focusBriefForPane } from "./focus-brief.js";
-import { withPaneInputEnabled } from "./inject.js";
+import { focusBriefForPane } from "../inject/focus-brief.js";
+import { withPaneInputEnabled } from "../inject/inject.js";
 import { sendLaunch } from "./launch.js";
-import { injectPromptDirect } from "./prompt.js";
-import { capturePaneSnapshot } from "./snapshot.js";
-import { resolvePaneTarget } from "./resolve-pane.js";
-import { tmux } from "./tmux-run.js";
+import { injectPromptDirect } from "../inject/prompt.js";
+import { capturePaneSnapshot } from "../lib/snapshot.js";
+import { resolvePaneTarget } from "../lib/resolve-pane.js";
+import { tmux } from "../lib/tmux-run.js";
 
 const CLI_TYPES = new Set(["agent", "kiro", "claude", "opencode", "empty"]);
 

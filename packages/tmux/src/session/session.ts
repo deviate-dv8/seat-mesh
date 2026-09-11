@@ -2,11 +2,11 @@ import { spawnSync } from "node:child_process";
 import type { LoadedProfile } from "@seat-mesh/core";
 import { applyMeshSessionBorders } from "./borders.js";
 import { labelMeshSession } from "./labels.js";
-import { ensureMeshInbox } from "./inbox-bridge.js";
-import { launchSession } from "./launch.js";
+import { ensureMeshInbox } from "../comms/inbox-bridge.js";
+import { launchSession } from "../agents/launch.js";
 import { ensureMeshSessionEnv } from "./session-env.js";
-import { inboxHealth, meshInboxPort, meshInboxStatusLine } from "./inbox-bridge.js";
-import { tmux, tmuxHasSession } from "./tmux-run.js";
+import { inboxHealth, meshInboxPort, meshInboxStatusLine } from "../comms/inbox-bridge.js";
+import { tmux, tmuxHasSession } from "../lib/tmux-run.js";
 import { assertRelayoutSafe } from "./layout-guard.js";
 import {
   applyMinisLeadsFromProfile,

@@ -1,6 +1,6 @@
 import type { LoadedProfile, ProviderRegistry } from "@seat-mesh/core";
-import { capturePaneSnapshot } from "./snapshot.js";
-import { resolvePaneTarget } from "./resolve-pane.js";
+import { capturePaneSnapshot } from "../lib/snapshot.js";
+import { resolvePaneTarget } from "../lib/resolve-pane.js";
 import { flushToPane } from "./inject.js";
 
 export interface FlushResult {

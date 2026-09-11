@@ -1,9 +1,9 @@
 import type { LoadedProfile } from "@seat-mesh/core";
 import { portsForSlot } from "@seat-mesh/core";
 import { enqueuePeer } from "./inbox-bridge.js";
-import { resolvePaneTarget } from "./resolve-pane.js";
-import { runWhoami } from "./whoami.js";
-import { capturePaneSnapshot } from "./snapshot.js";
+import { resolvePaneTarget } from "../lib/resolve-pane.js";
+import { runWhoami } from "../agents/whoami.js";
+import { capturePaneSnapshot } from "../lib/snapshot.js";
 
 function requireWorkerSender(loaded: LoadedProfile): {
   slot: string;

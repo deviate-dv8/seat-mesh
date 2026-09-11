@@ -1,6 +1,6 @@
 import type { LoadedProfile } from "@seat-mesh/core";
 import { portsForSlot } from "@seat-mesh/core";
-import { tmux } from "./tmux-run.js";
+import { tmux } from "../lib/tmux-run.js";
 import { listWindowPaneIds } from "./window-panes.js";
 
 function setPaneOptions(pane: string, pairs: Record<string, string>): void {

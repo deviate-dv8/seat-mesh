@@ -3,11 +3,11 @@ import path from "node:path";
 import type { LoadedProfile } from "@seat-mesh/core";
 import { applyMeshSessionBorders } from "./borders.js";
 import { labelMeshSession } from "./labels.js";
-import { ensureMeshInbox } from "./inbox-bridge.js";
+import { ensureMeshInbox } from "../comms/inbox-bridge.js";
 import { assertRelayoutSafe } from "./layout-guard.js";
-import { submitPaneOp } from "./pane-ops-client.js";
+import { submitPaneOp } from "../ops/pane-ops-client.js";
 import { relayoutMeshSession } from "./session.js";
-import { tmuxHasSession } from "./tmux-run.js";
+import { tmuxHasSession } from "../lib/tmux-run.js";
 
 export interface ReloadOptions {
   /** Re-run equal 3x2 / 4x2 grid (disruptive — kills extra panes). */

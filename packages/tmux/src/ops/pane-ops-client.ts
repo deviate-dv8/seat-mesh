@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import type { LoadedProfile, PaneOpKind, PaneOpRow } from "@seat-mesh/core";
-import { ensureMeshInbox, meshInboxPort } from "./inbox-bridge.js";
-import { runWhoami } from "./whoami.js";
+import { ensureMeshInbox, meshInboxPort } from "../comms/inbox-bridge.js";
+import { runWhoami } from "../agents/whoami.js";
 
 function inboxBase(port: number): string {
   return `http://127.0.0.1:${port}`;

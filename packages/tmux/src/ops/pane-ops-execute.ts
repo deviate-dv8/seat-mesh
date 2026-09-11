@@ -1,15 +1,15 @@
 import type { LoadedProfile, PaneOpRow } from "@seat-mesh/core";
 import { createBuiltinRegistry } from "@seat-mesh/providers";
-import { launchSession, printLaunchResults } from "./launch.js";
-import { assertRelayoutSafe, printRelayoutPlan } from "./layout-guard.js";
+import { launchSession, printLaunchResults } from "../agents/launch.js";
+import { assertRelayoutSafe, printRelayoutPlan } from "../session/layout-guard.js";
 import {
   miniSpawn,
   miniSpawnAll,
   loadMiniManifest,
-} from "./minis.js";
-import { relayoutMeshSession } from "./session.js";
-import { secretaryMeshWatch } from "./secretary.js";
-import { runSwitch } from "./switch.js";
+} from "../roles/minis.js";
+import { relayoutMeshSession } from "../session/session.js";
+import { secretaryMeshWatch } from "../roles/secretary.js";
+import { runSwitch } from "../agents/switch.js";
 
 export interface PaneOpExecuteResult {
   ok: boolean;

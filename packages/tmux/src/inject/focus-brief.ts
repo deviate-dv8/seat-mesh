@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { LoadedProfile } from "@seat-mesh/core";
-import type { PaneRow } from "./resolve-pane.js";
+import type { PaneRow } from "../lib/resolve-pane.js";
 
 const MAX = 6000;
 

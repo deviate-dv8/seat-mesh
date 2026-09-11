@@ -1,4 +1,4 @@
-import { tmux } from "./tmux-run.js";
+import { tmux } from "../lib/tmux-run.js";
 
 /** Border strip: ports | title | status | patience (harness-shaped; @mesh_* vars). */
 export function applyMeshBorderFormat(session: string, window: string): void {

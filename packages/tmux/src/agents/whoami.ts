@@ -6,7 +6,7 @@ import {
   portsForSlot,
   type LoadedProfile,
 } from "@seat-mesh/core";
-import { resolvePaneTarget } from "./resolve-pane.js";
+import { resolvePaneTarget } from "../lib/resolve-pane.js";
 
 export interface WhoamiResult {
   inTmux: boolean;

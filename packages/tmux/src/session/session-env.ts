@@ -1,4 +1,4 @@
-import { tmux } from "./tmux-run.js";
+import { tmux } from "../lib/tmux-run.js";
 
 /**
  * Scrub tmux server globals that wash out TUIs (NO_COLOR, TERM=dumb).
