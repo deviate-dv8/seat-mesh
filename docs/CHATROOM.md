@@ -115,7 +115,7 @@ seat-mesh room create <slug> ...                 # named contract (not global sl
 seat-mesh contract create <slug> ...             # alias
 ```
 
-Shim (zsign): `./tmux-zsign.sh sm room say ...` / `./sm.sh contract create ...`
+zsign consumer: `./sm.sh room say ...` / `./sm.sh contract create ...`
 
 Identity defaults from `./sm.sh whoami` / tmux pane (`mini-N`, `worker-N`).
 

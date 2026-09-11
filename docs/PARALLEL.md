@@ -1,16 +1,15 @@
-# Parallel run (legacy + seat-mesh)
+# Parallel run (seat-mesh + host harness)
 
-**Rule:** seat-mesh does **not** delete or replace `tmux-zsign.sh`, `inbox-server.mjs`,
-or `scripts/cpe-*.sh` until an explicit cutover. Both stacks can run side by side.
+**seat-mesh is independent.** It does not source, wrap, or passthrough to a host
+tmux script. The only external passthrough is **profile `stack.command`** (zsign:
+`./dc.sh` via `./sm.sh stack`).
 
-| Layer | Legacy (today) | seat-mesh (building) |
-|-------|----------------|----------------------|
-| Tmux layout | 8 workers, old window names | 6-slot 3x2 + `base` (not applied yet) |
-| Pane inject | bash `send_agent_keys` | daemon orchestrator only (WIP) |
-| Inbox | `inbox-server.mjs` :3099 | `@seat-mesh/daemon` + BullMQ (WIP) |
-| Proxy / OC | bash + inbox hooks | `@seat-mesh/connectivity` + limit hooks |
-| Entry | `./tmux-zsign.sh` | `./sm.sh` (seat-mesh only; no tmux-zsign passthrough) |
-| Stack | `./dc.sh` | `./sm.sh stack` / `./sm.sh dc` (passthrough to `./dc.sh` only) |
+| Concern | Host harness (zsign: `tmux-zsign.sh`) | seat-mesh |
+|---------|--------------------------------------|-----------|
+| Tmux layout, prompt, mini, inbox | yes | not yet (daemon WIP) |
+| Entry | `./tmux-zsign.sh` | `./bin/seat-mesh --profile …` or consumer `./sm.sh` |
+| Stack / docker | `./dc.sh` | `./sm.sh stack` (profile passthrough only) |
+| Coupling | zsign-local | none in core packages |
 
-Cutover (later): profile flag `orchestrator.primary: true` + Dan says go. Until then
-producers may **dual-write** (jsonl row + Bull job) for shadow testing.
+Cutover (later): profile flag + ported commands; host harness shrinks per command.
+No dual-entry linker in `tmux-zsign.sh`.

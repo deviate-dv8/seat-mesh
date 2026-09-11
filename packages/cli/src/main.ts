@@ -31,20 +31,20 @@ function parseArgs(argv: string[]) {
 }
 
 function usage(): void {
-  console.log(`seat-mesh — ./sm.sh (seat-mesh CLI only)
+  console.log(`seat-mesh — profile-driven agent workbench
 
 Usage:
-  sm help                                 this help
-  sm whoami [target]
-  sm index show|validate [--role …]
-  sm proxy status|check
-  sm providers list|scan [session]
-  sm room|contract|chat …
-  sm stack up|down|reload|…               passthrough to ./dc.sh (only external passthrough)
-  sm dc …                                 alias for stack
+  seat-mesh [--profile <dir|yaml>] help
+  seat-mesh [--profile <path>] whoami [target]
+  seat-mesh [--profile <path>] index show|validate [--role …]
+  seat-mesh [--profile <path>] proxy status|check
+  seat-mesh [--profile <path>] providers list|scan [session]
+  seat-mesh [--profile <path>] room|contract|chat …
+  seat-mesh [--profile <path>] stack up|down|reload|…  (profile stack.command passthrough)
+  seat-mesh [--profile <path>] dc …                     alias for stack
 
-Tmux layout, prompt, mini, inbox, save: ./tmux-zsign.sh (not sm.sh — port in progress).
-Profile: zsign hardcoded in ./sm.sh. Override: --profile <dir|yaml>
+Pass --profile <dir|mesh.config.yaml>. Consumer shims (e.g. zsign ./sm.sh) set profile for you.
+Only passthrough: profile stack.command (zsign: ./dc.sh). No other host scripts.
 `);
 }
 
@@ -196,7 +196,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.error(`unknown command: ${cmd} (sm.sh has no tmux-zsign passthrough; use ./tmux-zsign.sh)`);
+  console.error(`unknown command: ${cmd}`);
   usage();
   process.exit(2);
 }

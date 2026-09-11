@@ -32,7 +32,7 @@ export function findProfilePath(explicit?: string): string {
   if (fs.existsSync(bundled)) return bundled;
 
   throw new Error(
-    "no profile: pass --profile <path|dir> (zsign: use ./sm.sh)",
+    "no profile: pass --profile <path|dir>",
   );
 }
 

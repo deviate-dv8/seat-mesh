@@ -4,6 +4,6 @@ read_first:
     note: seat-mesh worker demo index
 policies:
   - id: mesh-cli
-    text: use ./sm.sh whoami; profile via --profile (zsign uses ./sm.sh)
+    text: seat-mesh whoami; pass --profile <dir> (see profiles/minimal)
 files:
   - package.json

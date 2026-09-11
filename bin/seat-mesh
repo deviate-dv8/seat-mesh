@@ -1,8 +1,24 @@
 #!/usr/bin/env bash
+# seat-mesh CLI entry (product-agnostic). Consumers: --profile <dir|yaml>
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-if [[ -f "$ROOT/packages/cli/dist/main.js" ]]; then
-  exec node "$ROOT/packages/cli/dist/main.js" "$@"
+CLI="$ROOT/packages/cli/dist/main.js"
+PKG="$ROOT/package.json"
+
+needs=0
+[[ -f "$CLI" ]] || needs=1
+[[ -d "$ROOT/node_modules" ]] || needs=1
+if [[ -f "$PKG" && -f "$CLI" && "$PKG" -nt "$CLI" ]]; then
+  needs=1
 fi
-echo "seat-mesh: run npm install && npm run build in $ROOT" >&2
-exit 1
+
+if [[ "$needs" -eq 1 ]]; then
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "seat-mesh: npm not found (need Node/npm for cold start build)" >&2
+    exit 1
+  fi
+  echo "seat-mesh: cold start — npm install + build in $ROOT ..." >&2
+  (cd "$ROOT" && npm install && npm run build)
+fi
+
+exec node "$CLI" "$@"
