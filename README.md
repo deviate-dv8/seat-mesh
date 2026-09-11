@@ -42,11 +42,12 @@ profiles/minimal       demo profile shipped with repo
 From the zsign workspace root:
 
 ```bash
-./sm.sh                                  # start/attach tmux (replaces bare ./tmux-zsign.sh)
-./sm.sh prompt slot-3 "..."              # harness bridge until command is ported
-./sm.sh whoami | room tail | chat tail | stack up | save
+./tmux-zsign.sh                          # tmux session, prompt, mini, inbox, save, …
+./sm.sh help                             # seat-mesh only (no tmux-zsign passthrough)
+./sm.sh whoami | room tail | chat tail
+./sm.sh stack up                         # only passthrough: ./dc.sh
 ```
 
-Linker: `seat-mesh/scripts/link-from-tmux-zsign.sh` (sourced by `sm.sh` + `tmux-zsign.sh`).
-Layout create still uses harness internally; attach is native seat-mesh. See `docs/ARCHITECTURE.md`.
+Linker: `seat-mesh/scripts/link-from-tmux-zsign.sh` (sourced by `sm.sh` + `tmux-zsign.sh sm …`).
+See `docs/PARALLEL.md` and `docs/ARCHITECTURE.md` for cutover plan.
 Profile: `seat-mesh/profiles/zsign/` (workspace = parent of `seat-mesh/`).

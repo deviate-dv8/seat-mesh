@@ -10,15 +10,7 @@ import {
 } from "@seat-mesh/core";
 import { snapshotConnectivity, formatStatus } from "@seat-mesh/connectivity";
 import { createBuiltinRegistry } from "@seat-mesh/providers";
-import {
-  printWhoami,
-  runWhoami,
-  capturePaneSnapshot,
-  listSessionPanes,
-  startSession,
-  attachSession,
-  runHarness,
-} from "@seat-mesh/tmux";
+import { printWhoami, runWhoami, capturePaneSnapshot, listSessionPanes } from "@seat-mesh/tmux";
 import { buildChatCommands } from "./chat-cli.js";
 import { buildContractCommands, buildRoomCommands } from "./room-cli.js";
 
@@ -39,21 +31,19 @@ function parseArgs(argv: string[]) {
 }
 
 function usage(): void {
-  console.log(`seat-mesh — zsign agent workbench (./sm.sh)
+  console.log(`seat-mesh — ./sm.sh (seat-mesh CLI only)
 
 Usage:
-  sm                                      start or attach tmux session (replaces ./tmux-zsign.sh)
-  sm start | attach                       same
-  sm <harness-cmd> ...                    prompt, triage, mini, switch, … (legacy bridge)
+  sm help                                 this help
   sm whoami [target]
   sm index show|validate [--role …]
   sm proxy status|check
   sm providers list|scan [session]
   sm room|contract|chat …
-  sm stack up|down|reload|…               passthrough to ./dc.sh
-  sm save                                 scrape panes -> tmux-main-agents.json (bash shim)
+  sm stack up|down|reload|…               passthrough to ./dc.sh (only external passthrough)
+  sm dc …                                 alias for stack
 
-Migrated commands run in seat-mesh; everything else delegates to tmux-zsign.sh until ported.
+Tmux layout, prompt, mini, inbox, save: ./tmux-zsign.sh (not sm.sh — port in progress).
 Profile: zsign hardcoded in ./sm.sh. Override: --profile <dir|yaml>
 `);
 }
@@ -62,19 +52,9 @@ async function main(): Promise<void> {
   const { profile: profileArg, rest } = parseArgs(process.argv.slice(2));
   const [cmd, sub, ...tail] = rest;
 
-  if (cmd === "-h" || cmd === "--help" || cmd === "help") {
+  if (!cmd || cmd === "-h" || cmd === "--help" || cmd === "help") {
     usage();
-    return;
-  }
-
-  if (!cmd || cmd === "start") {
-    const loaded = loadProfile(profileArg);
-    process.exit(startSession(loaded));
-  }
-
-  if (cmd === "attach") {
-    const loaded = loadProfile(profileArg);
-    process.exit(attachSession(loaded.profile.session.name));
+    process.exit(cmd ? 0 : 0);
   }
 
   if (cmd === "profile" && sub === "show") {
@@ -216,9 +196,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  const loaded = loadProfile(profileArg);
-  const harnessArgs = [cmd, ...(sub ? [sub] : []), ...tail];
-  process.exit(runHarness(loaded.workspace, harnessArgs));
+  console.error(`unknown command: ${cmd} (sm.sh has no tmux-zsign passthrough; use ./tmux-zsign.sh)`);
+  usage();
+  process.exit(2);
 }
 
 main().catch((e) => {
