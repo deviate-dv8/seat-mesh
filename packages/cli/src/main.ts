@@ -46,7 +46,8 @@ Usage:
   seat-mesh dc ...                     (alias for stack)
   seat-mesh profile show
 
-Bare ./sm.sh                           print this help (no dc.sh).
+Bare ./sm.sh                           start/attach tmux (exec tmux-zsign.sh; migration entry).
+  sm <cmd>                             unmigrated cmds pass through to tmux-zsign.sh
   sm stack up|down|reload|...          passthrough to profile stack.command (./dc.sh)
   sm save                              scrape panes -> tmux-main-agents.json (bash; was auto)
 
