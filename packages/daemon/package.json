@@ -1,0 +1,18 @@
+{
+  "name": "@seat-mesh/daemon",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Inbox orchestrator — sole pane writer; BullMQ workers drain queues.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@seat-mesh/core": "0.1.0",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.0.0"
+  }
+}

@@ -1,0 +1,9 @@
+kind: worker
+read_first:
+  - path: README.md
+    note: seat-mesh worker demo index
+policies:
+  - id: mesh-cli
+    text: use ./sm.sh whoami; profile via --profile (zsign uses ./sm.sh)
+files:
+  - package.json

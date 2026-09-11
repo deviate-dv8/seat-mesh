@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+if [[ -f "$ROOT/packages/cli/dist/main.js" ]]; then
+  exec node "$ROOT/packages/cli/dist/main.js" "$@"
+fi
+echo "seat-mesh: run npm install && npm run build in $ROOT" >&2
+exit 1

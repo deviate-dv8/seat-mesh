@@ -1,0 +1,33 @@
+name: minimal
+workspace: ../..   # seat-mesh repo root when demo; override per checkout
+
+session:
+  name: dev
+  workerCount: 2
+  miniMax: 4
+
+seats:
+  root: tasks/agent-seats
+  templates: [FOCUS, TASKS, REMINDER]
+
+state:
+  agentsJson: tmux-main-agents.json
+
+daemon:
+  port: 3099
+  managerPromptPrefix: "[agent-manager]"
+
+ports:
+  worker: "30{n}0/30{n}1"
+
+roles:
+  dir: roles
+
+connectivity:
+  enabled: false
+  proxyPort: 18887
+  policy:
+    rebootWifiBounce: false
+    smartRestart: false
+    rotateMaxAttempts: 3
+    cooldownMs: 1800000

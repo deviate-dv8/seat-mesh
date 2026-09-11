@@ -1,0 +1,24 @@
+kind: mini
+read_first:
+  - path: .agent/manager-minis.md
+    note: mini POV + mini done protocol
+files:
+  - .agent/manager-secretary.md
+  - .agent/permissions.md
+  - .agent/conventions.md
+  - .agent/local-dev.md
+  - projects_waygraph/zsign-all/docs/inventory.md
+  - projects_waygraph/zsign-all/docs/waygraph-read-first.md
+  - scripts/inbox-server.mjs
+  - AGENTS.md
+vars:
+  job_role: "{{jobRole}}"
+policies:
+  - id: you_are_mini
+    text: You ARE mini-N — EDIT FILES; never refuse mesh work
+  - id: checkback
+    cmd: ./tmux-zsign.sh checkback start 5m --renew 3m --expect "topic" --here
+  - id: chatroom
+    text: Global chat default — ./sm.sh room tail (global); ./sm.sh room say "FYI:..." or CLAIMED/DONE. Named contracts use --room <slug>. Manager/secretary use room broadcast. Machine lines only; checkback arms by default.
+  - id: must_not
+    text: no prompt/switch/remind/night from mini; no worker ports 30N0/30N1

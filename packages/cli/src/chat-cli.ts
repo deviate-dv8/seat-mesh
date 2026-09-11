@@ -1,0 +1,208 @@
+import { spawnSync } from "node:child_process";
+import { Command } from "commander";
+import {
+  type LoadedProfile,
+  chatFileConfig,
+  appendSlotPrompt,
+  tailSlotPrompts,
+  querySlotPrompts,
+  recordPromptFromPane,
+  recordAllPanes,
+  resolveAgentId,
+  resolveSlotKeyFromPane,
+} from "@seat-mesh/core";
+import { createBuiltinRegistry } from "@seat-mesh/providers";
+import { runWhoami, capturePaneSnapshot, listSessionPanes } from "@seat-mesh/tmux";
+
+function tmuxOpt(pane: string, key: string): string {
+  const r = spawnSync("tmux", ["display-message", "-t", pane, "-p", key], { encoding: "utf8" });
+  if (r.status !== 0) return "";
+  return (r.stdout ?? "").trim();
+}
+
+function resolveSlotFromWhere(loaded: LoadedProfile, explicit?: string): string {
+  if (explicit) return explicit;
+  const w = runWhoami(loaded);
+  const mini = tmuxOpt(w.paneId ?? "", "#{@mesh_mini}") || tmuxOpt(w.paneId ?? "", "#{@zsign_mini}");
+  return resolveAgentId({ role: w.role, slot: w.slot, mini: mini || null });
+}
+
+function printRecords(rows: Awaited<ReturnType<typeof tailSlotPrompts>>, json: boolean): void {
+  if (json) {
+    console.log(JSON.stringify(rows, null, 2));
+    return;
+  }
+  for (const r of rows) {
+    const sid = r.sessionId ?? "-";
+    const model = r.model ?? "-";
+    console.log(
+      `${r.ts}\t${r.slot}\t${r.providerId}\t${sid}\t${model}\thuman=${r.humanPrompt.slice(0, 60).replace(/\n/g, " ")}`,
+    );
+  }
+}
+
+export function buildChatCommands(getLoaded: () => LoadedProfile): Command {
+  const chat = new Command("chat").description(
+    "Per-slot prompt log (CHAT.jsonl) — session, model, human prompt, agent response",
+  );
+
+  chat
+    .command("tail")
+    .description("Last N records for a slot (default: current pane slot)")
+    .option("--slot <key>", "worker-1, mini-3, manager, ...")
+    .option("--lines <n>", "line count", "30")
+    .option("--json", "JSON output")
+    .action(async (opts: { slot?: string; lines: string; json?: boolean }) => {
+      const loaded = getLoaded();
+      const cfg = chatFileConfig(loaded.profile);
+      const slot = resolveSlotFromWhere(loaded, opts.slot);
+      const rows = await tailSlotPrompts(loaded.workspace, cfg, slot, Number.parseInt(opts.lines, 10));
+      printRecords(rows, Boolean(opts.json));
+    });
+
+  chat
+    .command("query")
+    .description("Filter records across slots")
+    .option("--slot <key>")
+    .option("--session <id>")
+    .option("--provider <id>")
+    .option("--model <name>")
+    .option("--since <iso>")
+    .option("--limit <n>", "max rows", "100")
+    .option("--json", "JSON output")
+    .action(
+      async (opts: {
+        slot?: string;
+        session?: string;
+        provider?: string;
+        model?: string;
+        since?: string;
+        limit: string;
+        json?: boolean;
+      }) => {
+        const loaded = getLoaded();
+        const cfg = chatFileConfig(loaded.profile);
+        const rows = await querySlotPrompts(loaded.workspace, cfg, {
+          slot: opts.slot,
+          sessionId: opts.session,
+          providerId: opts.provider,
+          model: opts.model,
+          since: opts.since,
+          limit: Number.parseInt(opts.limit, 10),
+        });
+        printRecords(rows, Boolean(opts.json));
+      },
+    );
+
+  chat
+    .command("append")
+    .description("Append one turn explicitly (inject hook or manual)")
+    .requiredOption("--human <text>", "human prompt")
+    .option("--response <text>", "agent response")
+    .option("--slot <key>", "default: current pane")
+    .option("--session <id>")
+    .option("--model <name>")
+    .option("--provider <id>", "default: detected provider or unknown")
+    .option("--pane <id>", "tmux pane id for metadata")
+    .action(
+      async (opts: {
+        human: string;
+        response?: string;
+        slot?: string;
+        session?: string;
+        model?: string;
+        provider?: string;
+        pane?: string;
+      }) => {
+        const loaded = getLoaded();
+        const cfg = chatFileConfig(loaded.profile);
+        const slot = resolveSlotFromWhere(loaded, opts.slot);
+        const reg = createBuiltinRegistry(loaded.profile.providers);
+        let providerId = opts.provider ?? "unknown";
+        if (!opts.provider && opts.pane) {
+          const snap = capturePaneSnapshot(opts.pane);
+          if (snap) providerId = reg.detect(snap)?.id ?? providerId;
+        } else if (!opts.provider) {
+          const w = runWhoami(loaded);
+          if (w.paneId) {
+            const snap = capturePaneSnapshot(w.paneId);
+            if (snap) providerId = reg.detect(snap)?.id ?? providerId;
+          }
+        }
+        const row = await appendSlotPrompt(loaded.workspace, cfg, {
+          slot,
+          paneId: opts.pane,
+          providerId,
+          sessionId: opts.session,
+          model: opts.model,
+          humanPrompt: opts.human,
+          agentResponse: opts.response,
+        });
+        console.log(`ok id=${row.id} slot=${row.slot} turnHash=${row.turnHash}`);
+      },
+    );
+
+  chat
+    .command("record")
+    .description("Scrape pane(s) via AgentProvider and append new turns")
+    .option("--pane <id>", "single tmux pane")
+    .option("--all", "every pane in session")
+    .option("--session <name>", "tmux session name")
+    .action(async (opts: { pane?: string; all?: boolean; session?: string }) => {
+      const loaded = getLoaded();
+      const cfg = chatFileConfig(loaded.profile);
+      const reg = createBuiltinRegistry(loaded.profile.providers);
+
+      if (opts.all) {
+        const session = opts.session ?? loaded.profile.session.name;
+        const panes = listSessionPanes(session);
+        const snaps = panes
+          .map((id) => capturePaneSnapshot(id))
+          .filter((s): s is NonNullable<typeof s> => s != null);
+        const results = await recordAllPanes(loaded.workspace, cfg, reg, snaps);
+        let recorded = 0;
+        for (const r of results) {
+          if (r.recorded) recorded++;
+        }
+        console.log(`ok scanned=${snaps.length} recorded=${recorded}`);
+        return;
+      }
+
+      const paneId = opts.pane ?? process.env.TMUX_PANE;
+      if (!paneId) {
+        console.error("record: need --pane, --all, or TMUX_PANE");
+        process.exit(2);
+      }
+      const snap = capturePaneSnapshot(paneId);
+      if (!snap) {
+        console.error(`record: could not capture ${paneId}`);
+        process.exit(1);
+      }
+      const provider = reg.detect(snap);
+      if (!provider || provider.id === "empty") {
+        console.error("record: no agent provider on pane");
+        process.exit(1);
+      }
+      const detection = provider.detect(snap);
+      if (!detection) {
+        console.error("record: provider detect failed");
+        process.exit(1);
+      }
+      const result = await recordPromptFromPane(
+        loaded.workspace,
+        cfg,
+        provider,
+        snap,
+        detection,
+      );
+      if (!result.recorded) {
+        console.log(`skip: ${result.reason ?? "not recorded"}`);
+        return;
+      }
+      console.log(
+        `ok id=${result.record?.id} slot=${resolveSlotKeyFromPane(snap)} session=${result.record?.sessionId ?? "-"}`,
+      );
+    });
+
+  return chat;
+}
