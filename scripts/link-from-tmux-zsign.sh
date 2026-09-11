@@ -73,34 +73,11 @@ seat_mesh_run_save() {
   exec "$root/tmux-zsign.sh" save "$@"
 }
 
-# Commands implemented in seat-mesh CLI (Node). Everything else -> tmux-zsign.sh shim.
-seat_mesh_is_migrated_cmd() {
-  case "${1:-}" in
-    whoami|where|index|room|contract|chat|stack|dc|profile|providers|proxy|help|-h|--help)
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-}
-
-seat_mesh_run_tmux() {
-  local root
-  root="$(seat_mesh_zsign_root)"
-  exec "$root/tmux-zsign.sh" "$@"
-}
-
 seat_mesh_exec() {
   local root profile cli
   root="$(seat_mesh_zsign_root)"
   profile="$(seat_mesh_profile_dir)"
   cli="$(seat_mesh_cli_js)"
-
-  # Default: same as ./tmux-zsign.sh (create session or attach).
-  if [[ $# -eq 0 ]]; then
-    seat_mesh_run_tmux
-  fi
 
   if [[ "${1:-}" == "save" ]]; then
     shift || true
@@ -110,10 +87,6 @@ seat_mesh_exec() {
 
   if [[ "${1:-}" == "where" ]]; then
     echo "note: where is deprecated — use ./sm.sh whoami" >&2
-  fi
-
-  if ! seat_mesh_is_migrated_cmd "${1:-}"; then
-    seat_mesh_run_tmux "$@"
   fi
 
   if [[ ! -f "$profile/mesh.config.yaml" ]]; then

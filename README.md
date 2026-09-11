@@ -42,14 +42,11 @@ profiles/minimal       demo profile shipped with repo
 From the zsign workspace root:
 
 ```bash
-./sm.sh                                  # start/attach tmux (replaces bare ./tmux-zsign.sh)
-./sm.sh prompt slot-3 "..."              # unmigrated -> tmux-zsign.sh passthrough
-./sm.sh whoami                           # migrated -> seat-mesh CLI
-./sm.sh room tail
-./sm.sh stack up                         # ./dc.sh up
-./sm.sh save                             # scrape panes -> tmux-main-agents.json
+./tmux-zsign.sh                          # tmux layout, prompt, mini, inbox (legacy harness)
+./sm.sh help                             # seat-mesh commands (migrated slice only)
+./sm.sh whoami | room tail | chat tail | stack up | save
 ```
 
 Linker: `seat-mesh/scripts/link-from-tmux-zsign.sh` (sourced by `sm.sh` + `tmux-zsign.sh`).
-Migration: `./sm.sh` is the front door; commands move into seat-mesh over time (`docs/PARALLEL.md`).
+Full cutover plan: `docs/ARCHITECTURE.md` (layout 6-slot, daemon, providers — not done yet).
 Profile: `seat-mesh/profiles/zsign/` (workspace = parent of `seat-mesh/`).
