@@ -1,6 +1,16 @@
+# Dependencies / build
 node_modules/
 dist/
 *.tsbuildinfo
-.DS_Store
+
+# Tests / tooling
+coverage/
+.vitest/
+
+# Local env
 .env
 .env.local
+
+# OS / editor
+.DS_Store
+*.log
